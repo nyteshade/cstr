@@ -21,6 +21,9 @@
 // Default string padding
 extern const char CS_DEFAULT_PADSTRING[];
 
+// Empty string constant
+extern const char CS_EMPTY_STRING[]; 
+
 // Bitwise operators denoting status for use with StringAction actions
 // sa.lastAction |= CSSA_NEW | CSSA_REALLOC to assign both flags
 // sa.lastAction &= ~CSSA_NEW to remove one flag
@@ -46,7 +49,7 @@ typedef struct StringAction {
 } StringAction;
 
 // Prototypes
-StringAction  cs_heapAction(char *string);
+void          cs_heapAction(StringAction *sa, char *string);
 StringAction  *cs_new(size_t size);
 StringAction  *cs_copy(const char *string);
 StringAction  *cs_copyAndResize(const char *string, size_t maxSize);
@@ -77,7 +80,8 @@ char          *cssa_padStartWith(
                 StringAction *action,
                 size_t length,
                 const char *padString
-              );                      
+              );    
+char          *cssa_repeat(StringAction *action, unsigned int times);                  
         
 // Prototypes working directly with strings; may use StringAction underneath
 char          cs_charAt(const char *string, size_t index);
@@ -103,6 +107,6 @@ char          *cs_padStartWith(
                 size_t length,
                 const char *padString
               );
-
+char          *cs_repeat(char *string, unsigned int times);
 
 #endif

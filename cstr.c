@@ -1,6 +1,7 @@
 #include "cstr.h"
 
 const char CS_DEFAULT_PADSTRING[] = " ";
+const char CS_EMPTY_STRING[] = "";
 
 const size_t CSSA_NEW      = 1; 
 const size_t CSSA_FREE     = 2; 
@@ -10,17 +11,13 @@ const size_t CSSA_FAILED   = 16;
 const size_t CSSA_HEAP     = 32;
 const size_t CSSA_SKIPPED  = 64;
 
-StringAction cs_heapAction(char *string) {
-  StringAction sa;
-  
-  sa.string = string;
-  sa.length = strlen(string);
-  sa.size = sa.length + 1;
-  sa.lastAction = CSSA_HEAP | CSSA_NEW;
-  sa.recalloced = FALSE;
-  sa.reserved = 0L;
-  
-  return sa;
+void cs_heapAction(StringAction *sa, char *string) {
+  sa->string = string;
+  sa->length = strlen(string);
+  sa->size = (sa->length + 1) * sizeof(char);
+  sa->lastAction = CSSA_HEAP | CSSA_NEW;
+  sa->recalloced = FALSE;
+  sa->reserved = 0L;
 }
 
 StringAction *cs_new(size_t size) {
@@ -47,16 +44,19 @@ StringAction *cs_copyAndResizeWith(
     if (!result) {
       return 0L;
     }
+    memset(result, 0L, sizeof(StringAction));
   }
   else {
     result = useAction;
   }
   
-  result->string = (char *)malloc(maxSize * sizeof(char));
+  result->size = maxSize * sizeof(char);
+  result->string = (char *)malloc(result->size);
   result->length = 0;
-  result->size = maxSize;
   result->lastAction = string ? CSSA_NEW : CSSA_FAILED;
   result->recalloced = TRUE;
+  
+  memset(result->string, 0L, result->size);
   
   if (cssa_testAndClear(result, CSSA_FAILED)) {
     return result;
@@ -150,7 +150,8 @@ BOOL cs_endsWith(const char *string, const char *ending) {
 }
 
 char *cs_concat(char *string, const char *extra) {
-  StringAction sa = cs_heapAction(string);
+  StringAction sa;
+  cs_heapAction(&sa, string);
   cssa_concat(&sa, extra);
   return sa.string;
 }
@@ -177,7 +178,7 @@ StringAction *cssa_concat(StringAction *action, const char *extra) {
   
   action->string = cattedOut;
   action->length = strlen(cattedOut);
-  action->size = action->length;
+  action->size = (action->length + 1) * sizeof(char);
   action->lastAction |= CSSA_REALLOC;
   action->recalloced = TRUE;
   
@@ -211,7 +212,8 @@ char *cs_padEnd(char *string, size_t length) {
 }
 
 char *cs_padEndWith(char *string, size_t length, const char *padString) {
-  StringAction sa = cs_heapAction(string);
+  StringAction sa;
+  cs_heapAction(&sa, string);
   return cssa_padEndWith(&sa, length, padString);
 }
 
@@ -245,7 +247,7 @@ char *cssa_padEndWith(
     sprintf(action->string, "%-*s", (int)length, action->string);
   }
   else {
-    for (i = strLen; i < length && i < action->size; i += padLen) {
+    for (i = strLen; i < length; i += padLen) {
       strcat(action->string, padding);
       if ((i + padLen - 1) >= length) {
         strncat(action->string, padding, length - i);
@@ -261,7 +263,8 @@ char *cs_padStart(char *string, size_t length) {
 }
 
 char *cs_padStartWith(char *string, size_t length, const char *padString) {
-  StringAction sa = cs_heapAction(string);
+  StringAction sa;
+  cs_heapAction(&sa, string);
   return cssa_padStartWith(&sa, length, padString);
 }
 
@@ -314,4 +317,31 @@ char *cssa_padStartWith(
   free(original);
   
   return action->string;
+}
+
+char *cs_repeat(char *string, unsigned int times) {
+  StringAction sa; 
+  cs_heapAction(&sa, string);
+  return cssa_repeat(&sa, times);
+}
+
+char *cssa_repeat(StringAction *action, unsigned int times) {
+  char *buffer;
+  int i;
+  
+  if (times == 0) {
+    return strdup(CS_EMPTY_STRING);
+  }
+  
+  if (!action) {
+    return NULL;
+  }
+  
+  buffer = (char *)malloc(action->size * times);
+  memset(buffer, 0L, action->size * times);
+  for (i = 0; i < times; i++) {
+    strcat(buffer, action->string);
+  }
+  
+  return buffer;
 }

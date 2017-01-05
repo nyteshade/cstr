@@ -171,6 +171,22 @@ int main(int argc, char **argv) {
     // reset for subsequent tests
     cs_freeAndRenew(stringMeta, "Brielle", maxLen);        
   }
+  
+  // cs_repeat, cssa_repeat
+  {
+    char ABC[] = "ABC";
+    char *one = cs_repeat(ABC, 1);
+    char *two = cs_repeat(ABC, 2);
+    char *sa3 = cssa_repeat(stringMeta, 3);
+    
+    printf("%s\n", one);
+    printf("%s\n", two);
+    printf("%s\n", sa3);
+    
+    free(one);
+    free(two);
+    free(sa3);
+  }
 
   cs_free(stringMeta);
   return 0;
